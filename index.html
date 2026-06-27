@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S&#x14D;maGraph</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f1623;
+  --bg2: #141d2e;
+  --bg3: #192236;
+  --border: #1e2d45;
+  --border2: #243452;
+  --gold: #C9A84C;
+  --teal: #2DCCB4;
+  --red: #E05252;
+  --blue: #4a8ff5;
+  --orange: #e8934a;
+  --txt: #e8edf5;
+  --txt2: #8a9ab8;
+  --txt3: #4a5a78;
+  --green: #4cbc8a;
+  --sidebar: 180px;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--txt);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  display: flex;
+  overflow: hidden;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: var(--sidebar);
+  min-width: var(--sidebar);
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow-y: auto;
+}
+.sidebar-logo {
+  padding: 16px 14px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.logo-horseshoe {
+  width: 28px; height: 24px; flex-shrink: 0;
+}
+.logo-name {
+  font-family: 'DM Serif Display', serif;
+  font-size: 14px;
+  color: var(--txt);
+  letter-spacing: 0.01em;
+}
+.logo-sub {
+  font-size: 8px;
+  color: var(--gold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  display: block;
+  margin-top: 1px;
+}
+.nav {
+  padding: 8px 0;
+  flex: 1;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--txt2);
+  cursor: pointer;
+  transition: all 0.12s;
+  position: relative;
+}
+.nav-item:hover { background: var(--bg3); color: var(--txt); }
+.nav-item.active { color: var(--txt); background: rgba(201,168,76,0.08); }
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--gold);
+}
+.nav-item svg { flex-shrink: 0; width: 14px; height: 14px; }
+.sidebar-drive {
+  padding: 10px 14px 14px;
+  border-top: 1px solid var(--border);
+}
+.drive-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--txt2);
+  margin-bottom: 6px;
+}
+.drive-btn {
+  width: 100%;
+  padding: 5px 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  color: var(--txt2);
+  font-size: 10px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+.drive-bar-bg {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  margin-bottom: 4px;
+}
+.drive-bar-fill {
+  height: 100%;
+  width: 34%;
+  background: linear-gradient(90deg, var(--blue), var(--teal));
+  border-radius: 2px;
+}
+.drive-usage { font-size: 9px; color: var(--txt3); font-family: 'JetBrains Mono', monospace; }
+
+/* MAIN */
+.main-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* TOPBAR */
+.topbar {
+  height: 48px;
+  min-height: 48px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+}
+.horse-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--txt);
+  margin-right: 4px;
+}
+.horse-tag {
+  font-size: 10px;
+  color: var(--txt2);
+  padding: 1px 6px;
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.topbar-icon {
+  width: 28px; height: 28px;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--txt2);
+  position: relative;
+}
+.topbar-icon .badge {
+  position: absolute;
+  top: 5px; right: 5px;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--red);
+  border: 1px solid var(--bg2);
+}
+.avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3a6fd8, var(--teal));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #fff; cursor: pointer;
+}
+
+/* SCROLL AREA */
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.scroll-area::-webkit-scrollbar { width: 4px; }
+.scroll-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* SCORE ROW */
+.score-row {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.score-inner {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.total-score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 140px;
+  padding-right: 20px;
+  border-right: 1px solid var(--border);
+  margin-right: 20px;
+}
+.score-label-top {
+  font-size: 9px;
+  color: var(--txt2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.score-big {
+  font-family: 'DM Serif Display', serif;
+  font-size: 40px;
+  color: var(--txt);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.score-grade {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gold);
+  margin-left: 8px;
+  letter-spacing: -0.01em;
+}
+.score-main {
+  display: flex;
+  align-items: baseline;
+}
+.metrics-7 {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  flex: 1;
+}
+.metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 10px;
+  border-right: 1px solid var(--border);
+}
+.metric:last-child { border-right: none; }
+.metric-lbl {
+  font-size: 9px;
+  color: var(--txt2);
+  margin-bottom: 5px;
+  letter-spacing: 0.06em;
+}
+.metric-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--txt);
+  line-height: 1;
+}
+.metric-val.gold { color: var(--gold); }
+
+/* MID ROW */
+.mid-row {
+  display: grid;
+  grid-template-columns: 1fr 220px 280px;
+  gap: 10px;
+}
+
+/* PANEL */
+.panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.panel-head {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--txt2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.panel-head-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.live-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #4cbc8a;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+.live-text { font-size: 9px; color: #4cbc8a; letter-spacing: 0.1em; }
+
+/* VIDEO */
+.video-area {
+  position: relative;
+  background: #080d18;
+  flex: 1;
+  min-height: 160px;
+  overflow: hidden;
+}
+.video-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* Skeleton horse for video placeholder */
+.horse-video-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #080d18, #0d1525);
+}
+.kp-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.kp {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+.kp-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 8px var(--gold);
+  animation: kpAnim 2s ease-in-out infinite;
+}
+.kp-dot.t { background: var(--teal); box-shadow: 0 0 8px var(--teal); }
+@keyframes kpAnim {
+  0%,100%{opacity:0.7;transform:scale(1)} 50%{opacity:1;transform:scale(1.4)}
+}
+.kp-line {
+  position: absolute;
+  background: rgba(201,168,76,0.35);
+  height: 1px;
+  transform-origin: left center;
+  pointer-events: none;
+}
+.video-ctrl {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: linear-gradient(transparent, rgba(8,13,24,0.9));
+  padding: 16px 10px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.play-btn {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.progress {
+  flex: 1;
+  height: 3px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+  cursor: pointer;
+}
+.progress-played {
+  height: 100%;
+  width: 48%;
+  background: var(--gold);
+  border-radius: 2px;
+}
+.time-txt {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--txt2);
+  white-space: nowrap;
+}
+.video-icons {
+  display: flex; gap: 6px;
+}
+.video-icons svg { color: var(--txt2); }
+
+/* LATERAL */
+.lateral-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+.lateral-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+.lateral-item:last-child { border-bottom: none; }
+.donut-wrap { flex-shrink: 0; }
+.lateral-info { flex: 1; }
+.lateral-part { font-size: 9px; color: var(--txt2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px; }
+.lateral-pct {
+  font-family: 'DM Serif Display', serif;
+  font-size: 26px;
+  color: var(--txt);
+  line-height: 1;
+}
+.lateral-note { font-size: 9px; color: var(--txt2); margin-top: 1px; }
+
+/* AI COMMENT */
+.ai-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex: 1;
+}
+.ai-item {
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+}
+.ai-bullet {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--teal);
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.ai-text { font-size: 11px; color: var(--txt2); line-height: 1.5; }
+
+/* LOWER ROW */
+.lower-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+/* CHART */
+.chart-body { padding: 8px 10px; flex: 1; }
+.chart-svg { width: 100%; overflow: visible; }
+
+/* BLOOD TABLE */
+.btable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.btable td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+.btable tr:last-child td { border-bottom: none; }
+.btable .bname { color: var(--txt2); }
+.btable .bval { font-family: 'JetBrains Mono', monospace; color: var(--txt); }
+.btable .bref { font-family: 'JetBrains Mono', monospace; color: var(--txt3); font-size: 10px; }
+.bdot {
+  display: inline-block;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.more-link {
+  padding: 7px 10px;
+  font-size: 10px;
+  color: var(--txt2);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.more-link:hover { color: var(--gold); }
+
+/* EVENTS */
+.ev-list { flex: 1; }
+.ev-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.ev-item:last-child { border-bottom: none; }
+.ev-date { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--txt3); white-space: nowrap; min-width: 55px; padding-top: 1px; }
+.ev-desc { color: var(--txt2); line-height: 1.4; }
+
+/* DOCS */
+.doc-list { flex: 1; }
+.doc-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.doc-item:last-child { border-bottom: none; }
+.doc-item:hover { background: var(--bg3); }
+.doc-ico { font-size: 12px; flex-shrink: 0; }
+.doc-name { font-size: 11px; color: var(--txt2); }
+
+/* BOTTOM ROW */
+.bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+/* THUMBS */
+.thumb-grid {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  grid-template-rows: repeat(2,1fr);
+  gap: 4px;
+  padding: 8px;
+  flex: 1;
+}
+.thumb {
+  border-radius: 4px;
+  background: #0a1020;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  aspect-ratio: 16/9;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.thumb:hover { border-color: var(--gold); }
+.thumb-play-ico {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: rgba(201,168,76,0.85);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0.85;
+}
+.thumb-more {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--txt2);
+}
+.thumb-date {
+  position: absolute;
+  bottom: 2px; left: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 7px;
+  color: rgba(255,255,255,0.4);
+}
+
+/* LEGEND */
+.legend {
+  display: flex;
+  gap: 10px;
+  padding: 0 10px 4px;
+}
+.legend-item { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--txt2); }
+.ldot { width: 6px; height: 6px; border-radius: 50%; }
+
+/* Y-axis labels */
+.y-label { font-family: 'JetBrains Mono', monospace; font-size: 8px; fill: var(--txt3); }
+.x-label { font-family: 'JetBrains Mono', monospace; font-size: 8px; fill: var(--txt3); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <svg class="logo-horseshoe" viewBox="0 0 28 24" fill="none">
+      <path d="M2 20C2 9 8 3 14 3C20 3 26 9 26 20" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M2 20L2 23Q4 24 5 24L7 24Q8 24 8 23L8 20" stroke="#C9A84C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <path d="M20 20L20 23Q22 24 23 24L25 24Q26 24 26 23L26 20" stroke="#C9A84C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <circle cx="14" cy="3" r="2" fill="#2DCCB4"/>
+    </svg>
+    <div>
+      <div class="logo-name">S&#x14D;maGraph</div>
+      <span class="logo-sub">AI Horse Intelligence</span>
+    </div>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active">
+      <svg viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="8" width="3" height="5" rx="1"/><rect x="5.5" y="5" width="3" height="8" rx="1"/><rect x="10" y="2" width="3" height="11" rx="1"/></svg>
+      ダッシュボード
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="5" r="2.5"/><path d="M2 13c0-2.8 2.2-5 5-5s5 2.2 5 5"/></svg>
+      馬一覧
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 7h10M7 2v10"/></svg>
+      比較分析
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="12" height="10" rx="1.5"/><path d="M1 5h12"/><path d="M4 2v3M10 2v3"/></svg>
+      タイムライン
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h10v8H2zM2 6h10"/><path d="M5 3v8"/></svg>
+      AIチャット
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 1h6l2 2v10H3z"/><path d="M5 6h4M5 8.5h3"/></svg>
+      ドキュメント
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 2v1.5M7 10.5V12M2 7h1.5M10.5 7H12M3.5 3.5l1 1M9.5 9.5l1 1M9.5 4.5l-1 1M4.5 9.5l-1 1"/><circle cx="7" cy="7" r="2"/></svg>
+      アラート
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M7 5v2.5l1.5 1.5"/></svg>
+      設定
+    </div>
+  </nav>
+  <div class="sidebar-drive">
+    <div class="drive-label">
+      <svg width="12" height="10" viewBox="0 0 24 20" fill="none"><path d="M8.5 0L0 14h7l8.5-14H8.5z" fill="#4a8ff5"/><path d="M15.5 0L24 14H17L8.5 0H15.5z" fill="#2DCCB4"/><path d="M0 14l4 6h16l4-6H0z" fill="#C9A84C"/></svg>
+      Google Drive
+    </div>
+    <button class="drive-btn">フォルダを選択</button>
+    <div class="drive-bar-bg"><div class="drive-bar-fill"></div></div>
+    <div class="drive-usage">68.4 GB / 200 GB</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-wrap">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <span class="horse-title">Horse 001</span>
+    <span class="horse-tag">&#29275;1&#27507;</span>
+    <span class="horse-tag">&#40284;&#27585;</span>
+    <span class="horse-tag">2023/03/15&#29983;</span>
+    <div class="topbar-right">
+      <div class="topbar-icon">
+        <div class="badge"></div>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+      </div>
+      <div class="topbar-icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+      </div>
+      <div class="avatar">YT</div>
+    </div>
+  </div>
+
+  <!-- SCROLL -->
+  <div class="scroll-area">
+
+    <!-- SCORE ROW -->
+    <div class="score-row">
+      <div class="score-inner">
+        <div class="total-score">
+          <div class="score-label-top">&#32080;&#21512;&#12473;&#12467;&#12450;</div>
+          <div class="score-main">
+            <span class="score-big">91.2</span>
+            <span class="score-grade">A+</span>
+          </div>
+        </div>
+        <div class="metrics-7">
+          <div class="metric">
+            <div class="metric-lbl">&#27493;&#27679;</div>
+            <div class="metric-val">92</div>
+          </div>
+          <div class="metric">
+            <div class="metric-lbl">&#39340;&#20307;</div>
+            <div class="metric-val">93</div>
+          </div>
+          <div class="metric">
+            <div class="metric-lbl">&#31109;&#32026;</div>
+            <div class="metric-val">91</div>
+          </div>
+          <div class="metric">
+            <div class="metric-lbl">&#27668;&#24615;</div>
+            <div class="metric-val">85</div>
+          </div>
+          <div class="metric">
+            <div class="metric-lbl">&#34880;&#32113;</div>
+            <div class="metric-val">89</div>
+          </div>
+          <div class="metric">
+            <div class="metric-lbl">&#25104;&#38263;&#30410;&#22320;</div>
+            <div class="metric-val">94</div>
+          </div>
+          <div class="metric">
+            <div class="metric-lbl">&#25545;&#38500;&#12522;&#12473;&#12463;</div>
+            <div class="metric-val gold">B</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MID ROW -->
+    <div class="mid-row">
+
+      <!-- VIDEO PANEL -->
+      <div class="panel">
+        <div class="panel-head">
+          &#27493;&#27679;&#20998;&#26512;&#65288;&#21205;&#30011;&#35299;&#26512;&#65289;
+          <div class="panel-head-right">
+            <div class="live-dot"></div>
+            <span class="live-text">AI&#20998;&#26512;&#20013;</span>
+          </div>
+        </div>
+        <div class="video-area">
+          <!-- Horse SVG illustration with keypoints -->
+          <svg width="100%" height="100%" viewBox="0 0 500 240" preserveAspectRatio="xMidYMid meet" style="position:absolute;inset:0;">
+            <!-- Ground -->
+            <rect width="500" height="240" fill="#080d18"/>
+            <!-- Background gradient -->
+            <defs>
+              <radialGradient id="bgGlow" cx="50%" cy="80%">
+                <stop offset="0%" stop-color="#0d1a30" stop-opacity="0.8"/>
+                <stop offset="100%" stop-color="#080d18"/>
+              </radialGradient>
+            </defs>
+            <rect width="500" height="240" fill="url(#bgGlow)"/>
+            <!-- Horse body - realistic side view -->
+            <!-- Body torso -->
+            <ellipse cx="240" cy="145" rx="85" ry="38" fill="#3d2810" opacity="0.9"/>
+            <!-- Neck -->
+            <path d="M280 120 C290 100, 300 85, 310 78 C318 72, 325 70, 330 75 C320 80, 310 88, 305 100 C298 115, 290 125, 280 132Z" fill="#3d2810"/>
+            <!-- Head -->
+            <path d="M318 72 C326 60, 335 52, 350 50 C365 49, 375 52, 378 62 C380 70, 372 75, 358 78 C344 81, 330 78, 318 72Z" fill="#3a2710"/>
+            <!-- Ear -->
+            <path d="M340 50 C342 42, 347 38, 350 40 C352 43, 350 50, 348 52Z" fill="#3a2710"/>
+            <!-- Eye -->
+            <circle cx="362" cy="60" r="4" fill="#1a1000"/>
+            <circle cx="363" cy="59" r="1.5" fill="#6b4c2a"/>
+            <!-- Nostril -->
+            <ellipse cx="375" cy="67" rx="3" ry="2" fill="#1a1000"/>
+            <!-- Mane -->
+            <path d="M295 78 C300 70, 308 62, 316 56 C322 52, 328 50, 332 52 C320 58, 308 68, 300 80Z" fill="#1a0d00" opacity="0.8"/>
+            <!-- Tail -->
+            <path d="M155 130 C140 128, 128 132, 120 140 C115 148, 118 158, 128 162 C138 160, 145 152, 148 140 C150 135, 152 130, 155 130Z" fill="#1a0d00" opacity="0.8"/>
+            <!-- Front right leg -->
+            <path d="M280 178 L278 200 L276 220 L284 220 L284 200 L286 178Z" fill="#3d2810"/>
+            <!-- Front left leg (slightly forward) -->
+            <path d="M268 178 L260 205 L258 222 L266 222 L268 205 L272 178Z" fill="#3d2810" opacity="0.85"/>
+            <!-- Back right leg -->
+            <path d="M198 175 L196 200 L194 220 L202 220 L202 200 L204 175Z" fill="#3d2810"/>
+            <!-- Back left leg -->
+            <path d="M212 175 L218 202 L218 222 L226 222 L222 202 L218 175Z" fill="#3d2810" opacity="0.85"/>
+            <!-- Hooves -->
+            <ellipse cx="281" cy="221" rx="6" ry="3" fill="#1a0d00"/>
+            <ellipse cx="263" cy="223" rx="6" ry="3" fill="#1a0d00"/>
+            <ellipse cx="199" cy="221" rx="6" ry="3" fill="#1a0d00"/>
+            <ellipse cx="221" cy="223" rx="6" ry="3" fill="#1a0d00"/>
+            <!-- Ground shadow -->
+            <ellipse cx="240" cy="228" rx="100" ry="6" fill="#000" opacity="0.3"/>
+            <!-- Skeleton overlay lines (AI keypoint connections) -->
+            <g opacity="0.5" stroke="#C9A84C" stroke-width="1" fill="none" stroke-dasharray="3,3">
+              <!-- Spine -->
+              <line x1="170" y1="130" x2="310" y2="115"/>
+              <!-- Neck line -->
+              <line x1="310" y1="115" x2="348" y2="68"/>
+              <!-- Front leg lines -->
+              <line x1="278" y1="158" x2="280" y2="180"/>
+              <line x1="280" y1="180" x2="279" y2="220"/>
+              <!-- Back leg lines -->
+              <line x1="205" y1="160" x2="200" y2="185"/>
+              <line x1="200" y1="185" x2="198" y2="220"/>
+            </g>
+          </svg>
+          <!-- Keypoint overlay -->
+          <div class="kp-overlay">
+            <!-- Withers -->
+            <div class="kp" style="left:60%;top:46%"><div class="kp-dot"></div></div>
+            <!-- Hip -->
+            <div class="kp" style="left:36%;top:50%"><div class="kp-dot"></div></div>
+            <!-- Poll (head) -->
+            <div class="kp" style="left:70%;top:24%"><div class="kp-dot t"></div></div>
+            <!-- Shoulder -->
+            <div class="kp" style="left:57%;top:56%"><div class="kp-dot t"></div></div>
+            <!-- Elbow -->
+            <div class="kp" style="left:55%;top:66%"><div class="kp-dot"></div></div>
+            <!-- Knee front -->
+            <div class="kp" style="left:54%;top:76%"><div class="kp-dot t"></div></div>
+            <!-- Fetlock front -->
+            <div class="kp" style="left:54%;top:85%"><div class="kp-dot"></div></div>
+            <!-- Stifle -->
+            <div class="kp" style="left:40%;top:64%"><div class="kp-dot"></div></div>
+            <!-- Hock -->
+            <div class="kp" style="left:39%;top:76%"><div class="kp-dot t"></div></div>
+            <!-- Fetlock back -->
+            <div class="kp" style="left:39%;top:86%"><div class="kp-dot"></div></div>
+          </div>
+          <div class="video-ctrl">
+            <button class="play-btn">
+              <svg width="8" height="10" viewBox="0 0 8 10" fill="#0A0C10"><path d="M1 1l6 4-6 4z"/></svg>
+            </button>
+            <div class="progress"><div class="progress-played"></div></div>
+            <span class="time-txt">0:12 / 0:25</span>
+            <div class="video-icons">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 01-12 0"/><line x1="12" y1="3" x2="12" y2="11"/></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LATERAL PANEL -->
+      <div class="panel">
+        <div class="panel-head">&#24038;&#21491;&#24046;&#20998;&#26512;</div>
+        <div class="lateral-body">
+          <!-- Foreleg donut -->
+          <div class="lateral-item">
+            <div class="donut-wrap">
+              <svg width="60" height="60" viewBox="0 0 60 60">
+                <circle cx="30" cy="30" r="22" fill="none" stroke="#1e2d45" stroke-width="5"/>
+                <circle cx="30" cy="30" r="22" fill="none" stroke="#C9A84C" stroke-width="5"
+                  stroke-dasharray="138.2" stroke-dashoffset="127" stroke-linecap="round"
+                  transform="rotate(-90 30 30)"/>
+                <text x="30" y="34" text-anchor="middle" fill="#e8edf5" font-size="11" font-family="DM Serif Display">8%</text>
+              </svg>
+            </div>
+            <div class="lateral-info">
+              <div class="lateral-part">&#21069;&#36681;</div>
+              <div class="lateral-pct">8<span style="font-size:14px;font-family:Inter">%</span></div>
+              <div class="lateral-note">&#24038;&#21491;&#24046;&#23567;</div>
+            </div>
+          </div>
+          <!-- Hindleg donut -->
+          <div class="lateral-item">
+            <div class="donut-wrap">
+              <svg width="60" height="60" viewBox="0 0 60 60">
+                <circle cx="30" cy="30" r="22" fill="none" stroke="#1e2d45" stroke-width="5"/>
+                <circle cx="30" cy="30" r="22" fill="none" stroke="#2DCCB4" stroke-width="5"
+                  stroke-dasharray="138.2" stroke-dashoffset="130" stroke-linecap="round"
+                  transform="rotate(-90 30 30)"/>
+                <text x="30" y="34" text-anchor="middle" fill="#e8edf5" font-size="11" font-family="DM Serif Display">6%</text>
+              </svg>
+            </div>
+            <div class="lateral-info">
+              <div class="lateral-part">&#24460;&#36681;</div>
+              <div class="lateral-pct">6<span style="font-size:14px;font-family:Inter">%</span></div>
+              <div class="lateral-note">&#24038;&#21491;&#24046;&#23567;</div>
+            </div>
+          </div>
+          <!-- Contact donut -->
+          <div class="lateral-item">
+            <div class="donut-wrap">
+              <svg width="60" height="60" viewBox="0 0 60 60">
+                <circle cx="30" cy="30" r="22" fill="none" stroke="#1e2d45" stroke-width="5"/>
+                <circle cx="30" cy="30" r="22" fill="none" stroke="#4a8ff5" stroke-width="5"
+                  stroke-dasharray="138.2" stroke-dashoffset="131" stroke-linecap="round"
+                  transform="rotate(-90 30 30)"/>
+                <text x="30" y="34" text-anchor="middle" fill="#e8edf5" font-size="11" font-family="DM Serif Display">5%</text>
+              </svg>
+            </div>
+            <div class="lateral-info">
+              <div class="lateral-part">&#25509;&#22320;</div>
+              <div class="lateral-pct">5<span style="font-size:14px;font-family:Inter">%</span></div>
+              <div class="lateral-note">&#24038;&#21491;&#24046;&#23567;</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI COMMENT PANEL -->
+      <div class="panel">
+        <div class="panel-head">
+          &#26368;&#26032;&#12467;&#12513;&#12531;&#12488;&#35201;&#32004;&#65288;AI&#65289;
+          <div class="panel-head-right">
+            <div class="live-dot" style="background:var(--teal)"></div>
+          </div>
+        </div>
+        <div class="ai-body">
+          <div class="ai-item">
+            <div class="ai-bullet"></div>
+            <div class="ai-text">&#20840;&#20307;&#30340;&#12395;&#12496;&#12521;&#12531;&#12473;&#12364;&#826F;&#12367;&#12289;&#29305;&#12395;&#24460;&#36681;&#12398;&#30330;&#36914;&#21147;&#12364;&#20808;&#12435;&#12391;&#12356;&#12427;&#12290;</div>
+          </div>
+          <div class="ai-item">
+            <div class="ai-bullet"></div>
+            <div class="ai-text">&#27493;&#27679;&#12399;&#12473;&#12512;&#12540;&#12474;&#12391;&#12289;&#12473;&#12488;&#12521;&#12452;&#12489;&#12418;&#21313;&#20998;&#12290;</div>
+          </div>
+          <div class="ai-item">
+            <div class="ai-bullet" style="background:var(--gold)"></div>
+            <div class="ai-text">&#21491;&#21069;&#20491;&#12398;&#36033;&#12415;&#36796;&#12415;&#12364;&#12420;&#12420;&#27973;&#12356;&#12364;&#12289;&#25104;&#38263;&#12392;&#12392;&#12418;&#12395;&#25913;&#21892;&#12364;&#26399;&#24453;&#12373;&#12428;&#12427;&#12290;</div>
+          </div>
+          <div class="ai-item">
+            <div class="ai-bullet"></div>
+            <div class="ai-text">&#27668;&#24615;&#12399;&#843E;&#12385;&#30528;&#12356;&#12390;&#12362;&#12426;&#12289;&#25201;&#12356;&#12420;&#12377;&#12356;&#12290;</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOWER ROW 4cols -->
+    <div class="lower-row">
+      <!-- Weight Chart -->
+      <div class="panel">
+        <div class="panel-head">&#20307;&#37325;&#25512;&#31227;</div>
+        <div class="chart-body">
+          <svg class="chart-svg" height="110" viewBox="0 0 220 110">
+            <defs>
+              <linearGradient id="wg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#C9A84C" stop-opacity="0.25"/>
+                <stop offset="100%" stop-color="#C9A84C" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <line x1="0" y1="88" x2="220" y2="88" stroke="#1e2d45" stroke-width="1"/>
+            <line x1="0" y1="60" x2="220" y2="60" stroke="#1e2d45" stroke-width="1"/>
+            <line x1="0" y1="32" x2="220" y2="32" stroke="#1e2d45" stroke-width="1"/>
+            <text class="y-label" x="2" y="90">400</text>
+            <text class="y-label" x="2" y="62">500</text>
+            <text class="y-label" x="2" y="34">600</text>
+            <path d="M22 82 C50 79, 75 73, 100 67 C125 61, 148 68, 165 58 C182 50, 200 44, 215 38 L215 88 L22 88Z" fill="url(#wg)"/>
+            <path d="M22 82 C50 79, 75 73, 100 67 C125 61, 148 68, 165 58 C182 50, 200 44, 215 38" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="22" cy="82" r="3" fill="#C9A84C"/>
+            <circle cx="100" cy="67" r="3" fill="#C9A84C"/>
+            <circle cx="165" cy="58" r="3" fill="#C9A84C"/>
+            <circle cx="215" cy="38" r="3" fill="#C9A84C"/>
+            <text class="x-label" x="14" y="100">23/06</text>
+            <text class="x-label" x="92" y="100">23/09</text>
+            <text class="x-label" x="155" y="100">24/03</text>
+            <text class="x-label" x="200" y="100">24/06</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Training Chart -->
+      <div class="panel">
+        <div class="panel-head">&#35519;&#25945;&#12479;&#12452;&#12512;&#25512;&#31227;&#65288;&#22374;&#36335;&#65289;</div>
+        <div class="chart-body">
+          <svg class="chart-svg" height="110" viewBox="0 0 220 110">
+            <defs>
+              <linearGradient id="tg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#2DCCB4" stop-opacity="0.2"/>
+                <stop offset="100%" stop-color="#2DCCB4" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <line x1="0" y1="88" x2="220" y2="88" stroke="#1e2d45" stroke-width="1"/>
+            <line x1="0" y1="55" x2="220" y2="55" stroke="#1e2d45" stroke-width="1"/>
+            <line x1="0" y1="22" x2="220" y2="22" stroke="#1e2d45" stroke-width="1"/>
+            <text class="y-label" x="2" y="90">12.0</text>
+            <text class="y-label" x="2" y="57">13.0</text>
+            <text class="y-label" x="2" y="24">13.5</text>
+            <path d="M22 72 C55 68, 80 60, 100 56 C120 52, 145 58, 165 50 C185 42, 200 36, 215 30 L215 88 L22 88Z" fill="url(#tg)"/>
+            <path d="M22 72 C55 68, 80 60, 100 56 C120 52, 145 58, 165 50 C185 42, 200 36, 215 30" fill="none" stroke="#2DCCB4" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="22" cy="72" r="3" fill="#2DCCB4"/>
+            <circle cx="100" cy="56" r="3" fill="#2DCCB4"/>
+            <circle cx="165" cy="50" r="3" fill="#2DCCB4"/>
+            <circle cx="215" cy="30" r="3" fill="#2DCCB4"/>
+            <text class="x-label" x="14" y="100">23/06</text>
+            <text class="x-label" x="92" y="100">23/09</text>
+            <text class="x-label" x="155" y="100">24/03</text>
+            <text class="x-label" x="200" y="100">24/06</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Blood Data -->
+      <div class="panel">
+        <div class="panel-head">&#34880;&#28781;&#12487;&#12540;&#12479;&#65288;&#26368;&#26032;&#65289;</div>
+        <table class="btable">
+          <tr>
+            <td class="bname">&#39033;&#30446;</td>
+            <td class="bval">&#20516;</td>
+            <td class="bref">&#22522;&#28310;&#20516;</td>
+          </tr>
+          <tr>
+            <td class="bname"><span class="bdot" style="background:#4cbc8a"></span>WBC</td>
+            <td class="bval">8,500</td>
+            <td class="bref">6,000-12,000</td>
+          </tr>
+          <tr>
+            <td class="bname"><span class="bdot" style="background:#4cbc8a"></span>RBC</td>
+            <td class="bval">980</td>
+            <td class="bref">800-1100</td>
+          </tr>
+          <tr>
+            <td class="bname"><span class="bdot" style="background:#C9A84C"></span>Hb</td>
+            <td class="bval" style="color:#C9A84C">16.2</td>
+            <td class="bref">12.0-18.0</td>
+          </tr>
+        </table>
+        <div class="more-link">&#12418;&#12387;&#12392;&#35211;&#12427; &#8250;</div>
+      </div>
+
+      <!-- Documents -->
+      <div class="panel">
+        <div class="panel-head">&#12489;&#12461;&#12517;&#12513;&#12531;&#12488;</div>
+        <div class="doc-list">
+          <div class="doc-item">
+            <span class="doc-ico">&#128196;</span>
+            <span class="doc-name">&#12524;&#12531;&#12488;&#12466;&#12531;.pdf</span>
+          </div>
+          <div class="doc-item">
+            <span class="doc-ico">&#128196;</span>
+            <span class="doc-name">&#34880;&#32113;&#34920;.pdf</span>
+          </div>
+          <div class="doc-item">
+            <span class="doc-ico">&#128196;</span>
+            <span class="doc-name">&#35519;&#25945;&#12513;&#12514;.md</span>
+          </div>
+          <div class="doc-item">
+            <span class="doc-ico">&#128196;</span>
+            <span class="doc-name">&#30452;&#36817;&#35530;&#26481;&#26360;.pdf</span>
+          </div>
+        </div>
+        <div class="more-link">&#12418;&#12387;&#12392;&#35211;&#12427; &#8250;</div>
+      </div>
+    </div>
+
+    <!-- BOTTOM ROW 3cols -->
+    <div class="bottom-row">
+      <!-- Events -->
+      <div class="panel">
+        <div class="panel-head">&#26368;&#36817;&#12398;&#12452;&#12505;&#12531;&#12488;</div>
+        <div class="ev-list">
+          <div class="ev-item">
+            <span class="ev-date">2024/06/01</span>
+            <span class="ev-desc">&#35519;&#25945;&#21205;&#30011;&#12434;&#36861;&#21152;</span>
+          </div>
+          <div class="ev-item">
+            <span class="ev-date">2024/05/28</span>
+            <span class="ev-desc">&#34880;&#28781;&#26908;&#26619;&#12487;&#12540;&#12479;&#12434;&#36861;&#21152;</span>
+          </div>
+          <div class="ev-item">
+            <span class="ev-date">2024/05/20</span>
+            <span class="ev-desc">&#20307;&#37325;&#12487;&#12540;&#12479;&#12434;&#26356;&#26032;</span>
+          </div>
+        </div>
+        <div class="more-link">&#12418;&#12387;&#12392;&#35211;&#12427; &#8250;</div>
+      </div>
+
+      <!-- Timeline Chart 3lines -->
+      <div class="panel">
+        <div class="panel-head">&#12479;&#12452;&#12512;&#12521;&#12452;&#12531;&#65288;&#20307;&#37325;&#12539;&#27493;&#27679;&#12539;&#35519;&#25945;&#65289;</div>
+        <div class="legend">
+          <div class="legend-item"><div class="ldot" style="background:#C9A84C"></div>&#20307;&#37325;</div>
+          <div class="legend-item"><div class="ldot" style="background:#2DCCB4"></div>&#27493;&#27679;&#12473;&#12467;&#12450;</div>
+          <div class="legend-item"><div class="ldot" style="background:#e8934a"></div>&#35519;&#25945;&#25351;&#25968;</div>
+        </div>
+        <div class="chart-body">
+          <svg class="chart-svg" height="120" viewBox="0 0 300 120">
+            <line x1="0" y1="100" x2="300" y2="100" stroke="#1e2d45" stroke-width="1"/>
+            <line x1="0" y1="65" x2="300" y2="65" stroke="#1e2d45" stroke-width="1"/>
+            <line x1="0" y1="30" x2="300" y2="30" stroke="#1e2d45" stroke-width="1"/>
+            <text class="y-label" x="2" y="102">25</text>
+            <text class="y-label" x="2" y="67">75</text>
+            <text class="y-label" x="2" y="32">100</text>
+            <!-- Weight line -->
+            <path d="M20 88 C60 85, 100 80, 140 75 C180 70, 220 72, 260 60 C280 54, 290 48, 295 44" fill="none" stroke="#C9A84C" stroke-width="2"/>
+            <!-- Gait score line -->
+            <path d="M20 78 C60 72, 100 65, 140 58 C180 52, 220 45, 260 36 C280 30, 290 24, 295 20" fill="none" stroke="#2DCCB4" stroke-width="2"/>
+            <!-- Training line -->
+            <path d="M20 92 C60 88, 100 82, 140 76 C180 70, 220 62, 260 52 C280 46, 290 40, 295 36" fill="none" stroke="#e8934a" stroke-width="2"/>
+            <!-- Dots Gait -->
+            <circle cx="20" cy="78" r="3" fill="#2DCCB4"/><circle cx="100" cy="65" r="3" fill="#2DCCB4"/>
+            <circle cx="180" cy="52" r="3" fill="#2DCCB4"/><circle cx="295" cy="20" r="3" fill="#2DCCB4"/>
+            <!-- Dots Weight -->
+            <circle cx="20" cy="88" r="3" fill="#C9A84C"/><circle cx="140" cy="75" r="3" fill="#C9A84C"/>
+            <circle cx="260" cy="60" r="3" fill="#C9A84C"/><circle cx="295" cy="44" r="3" fill="#C9A84C"/>
+            <!-- Dots Training -->
+            <circle cx="20" cy="92" r="3" fill="#e8934a"/><circle cx="140" cy="76" r="3" fill="#e8934a"/>
+            <circle cx="260" cy="52" r="3" fill="#e8934a"/>
+            <text class="x-label" x="12" y="112">23/06</text>
+            <text class="x-label" x="126" y="112">23/12</text>
+            <text class="x-label" x="245" y="112">24/03</text>
+            <text class="x-label" x="279" y="112">24/06</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Thumbnails -->
+      <div class="panel">
+        <div class="panel-head">&#12469;&#12512;&#12493;&#12452;&#12523;&#12462;&#12515;&#12521;&#12522;&#12540;</div>
+        <div class="thumb-grid">
+          <div class="thumb" style="background:linear-gradient(135deg,#0d1828,#0a1020)">
+            <div class="thumb-play-ico"><svg width="6" height="8" viewBox="0 0 6 8" fill="#0A0C10"><path d="M0 0l6 4-6 4z"/></svg></div>
+            <span class="thumb-date">06/01</span>
+          </div>
+          <div class="thumb" style="background:linear-gradient(135deg,#0a1020,#0d1828)">
+            <div class="thumb-play-ico"><svg width="6" height="8" viewBox="0 0 6 8" fill="#0A0C10"><path d="M0 0l6 4-6 4z"/></svg></div>
+            <span class="thumb-date">05/28</span>
+          </div>
+          <div class="thumb" style="background:linear-gradient(135deg,#0f1530,#0a1020)">
+            <div class="thumb-play-ico"><svg width="6" height="8" viewBox="0 0 6 8" fill="#0A0C10"><path d="M0 0l6 4-6 4z"/></svg></div>
+            <span class="thumb-date">05/20</span>
+          </div>
+          <div class="thumb" style="background:linear-gradient(135deg,#0d1828,#0f1530)">
+            <div class="thumb-play-ico"><svg width="6" height="8" viewBox="0 0 6 8" fill="#0A0C10"><path d="M0 0l6 4-6 4z"/></svg></div>
+            <span class="thumb-date">05/12</span>
+          </div>
+          <div class="thumb" style="background:linear-gradient(135deg,#0a1020,#0d1828)">
+            <div class="thumb-play-ico"><svg width="6" height="8" viewBox="0 0 6 8" fill="#0A0C10"><path d="M0 0l6 4-6 4z"/></svg></div>
+            <span class="thumb-date">04/30</span>
+          </div>
+          <div class="thumb" style="align-items:center;justify-content:center;display:flex;background:#0a1020">
+            <span class="thumb-more">+24</span>
+          </div>
+        </div>
+        <div class="more-link">&#12418;&#12387;&#12392;&#35211;&#12427; &#8250;</div>
+      </div>
+    </div>
+
+  </div><!-- /scroll-area -->
+</div><!-- /main-wrap -->
+
+</body>
+</html>
