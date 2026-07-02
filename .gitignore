@@ -1,0 +1,16 @@
+# model weights / downloads
+engine/models/
+*.pth
+
+# analysis outputs
+results/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# misc
+.DS_Store
+.playwright-mcp/

@@ -1,0 +1,12 @@
+# 推論スタック (参考: https://note.com/gugenkakeiba/n/n45032876f319)
+# インストールは README の手順 (openmim 経由) を推奨。
+torch>=2.0
+torchvision
+openmim
+mmengine
+mmcv>=2.0.1
+mmdet>=3.1.0
+mmpose>=1.1.0
+# 動画I/O・数値計算
+opencv-python
+numpy
