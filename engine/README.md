@@ -31,6 +31,29 @@ cd engine
 python -m somagraph --download-models
 ```
 
+### macOS (Apple Silicon) ローカルCPU実行 — 動作確認済みの手順
+
+mmcv はソースビルドになる (10分程度)。chumpy は py3.11+ でビルド不能だが
+2Dトップダウン推論には不要なので mmpose を `--no-deps` で入れる。
+
+```bash
+cd engine
+uv venv --python 3.11 .venv
+uv pip install -p .venv/bin/python "torch==2.1.2" "torchvision==0.16.2" "numpy<2"
+uv pip install -p .venv/bin/python mmengine openmim "opencv-python<4.10" \
+    "setuptools==75.8.0" wheel cython ninja
+MAX_JOBS=4 uv pip install -p .venv/bin/python --no-build-isolation mmcv==2.1.0
+uv pip install -p .venv/bin/python "mmdet==3.3.0"
+uv pip install -p .venv/bin/python --no-deps "mmpose==1.3.2"
+uv pip install -p .venv/bin/python json_tricks munkres matplotlib pillow
+uv pip install -p .venv/bin/python --no-build-isolation xtcocotools
+
+.venv/bin/python -m somagraph --download-models
+.venv/bin/python -m somagraph samples/horse_walk.mp4 -o samples/results --device cpu
+```
+
+CPU (M1/8GB) での目安: 640x480・287フレームで4分弱。
+
 ## 使い方
 
 ```bash
