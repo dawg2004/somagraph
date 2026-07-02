@@ -70,6 +70,29 @@ python -m somagraph input.mp4 -o results/ --device cpu
 | `keypoints.csv` | `frame, time_s, keypoint, x, y, score` のロング形式 |
 | `dashboard.json` | 歩様スコア・左右差・リズム等（UI表示用） |
 
+### Webダッシュボード (アップロード解析)
+
+```bash
+cd engine
+uv pip install -p .venv/bin/python fastapi "uvicorn[standard]" python-multipart
+.venv/bin/python server.py        # http://localhost:8760
+```
+
+ブラウザで http://localhost:8760 (PC) / http://localhost:8760/mobile.html (スマホUI) を開き、
+「動画をアップロード」から解析を実行する。進捗表示ののち、骨格オーバーレイ動画と
+歩様スコア・左右差ドーナツが実測値に更新される。
+
+API:
+
+| エンドポイント | 内容 |
+|---|---|
+| `POST /api/analyze` (multipart `file`) | ジョブ投入 → `{job_id}` |
+| `GET /api/jobs/{id}` | 状態・進捗・dashboard JSON |
+| `GET /api/jobs/{id}/video` | 骨格オーバーレイ動画 (H.264) |
+| `GET /api/jobs/{id}/keypoints.csv` | キーポイントCSV |
+
+GPUで動かす場合は `SOMAGRAPH_DEVICE=cuda:0 python server.py`。
+
 ### Python API
 
 ```python

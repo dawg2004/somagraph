@@ -415,6 +415,21 @@ body {
                 </g>
               </g>
             </svg>
+            <video id="m-result-video" controls autoplay muted loop playsinline
+              style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#080d18;z-index:1;"></video>
+            <div id="m-analyze-overlay" style="display:none;position:absolute;inset:0;z-index:4;background:rgba(8,13,24,0.82);flex-direction:column;align-items:center;justify-content:center;gap:10px;">
+              <div style="font-size:12px;color:var(--txt2);letter-spacing:0.06em;" id="m-analyze-msg">アップロード中…</div>
+              <div style="width:60%;height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
+                <div id="m-analyze-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--gold),var(--teal));border-radius:2px;transition:width 0.4s;"></div>
+              </div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--txt3);" id="m-analyze-pct"></div>
+            </div>
+            <button type="button" id="m-upload-btn" onclick="document.getElementById('m-video-file-input').click()"
+              style="position:absolute;top:8px;left:8px;z-index:3;display:flex;align-items:center;gap:5px;padding:5px 10px;background:var(--gold);color:#0a0c10;border:none;border-radius:7px;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;cursor:pointer;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+              アップロード
+            </button>
+            <input type="file" id="m-video-file-input" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,.mp4,.mov,.webm,.avi,.mkv,.m4v" style="display:none" onchange="mUploadVideo(this.files[0])">
             <div class="view-toggle" role="group">
               <button type="button" class="view-toggle-btn active" onclick="setMobileVideoView('skeleton', this)" title="&#12473;&#12465;&#12523;&#12488;&#12531;&#34920;&#31034;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="12" r="2"/><circle cx="9" cy="20" r="2"/><circle cx="16" cy="20" r="2"/><path d="M12 7v5M6 14l3 4M18 14l-2 4"/></svg>
@@ -441,7 +456,7 @@ body {
               <div class="m-grade-badge">A+</div>
             </div>
             <div class="m-metrics-grid">
-              <div class="m-metric"><div class="m-metric-lbl">歩様</div><div class="m-metric-val">92</div></div>
+              <div class="m-metric"><div class="m-metric-lbl">歩様</div><div class="m-metric-val" id="m-metric-gait">92</div></div>
               <div class="m-metric"><div class="m-metric-lbl">馬体</div><div class="m-metric-val">93</div></div>
               <div class="m-metric"><div class="m-metric-lbl">筋肉</div><div class="m-metric-val">91</div></div>
               <div class="m-metric"><div class="m-metric-lbl">気性</div><div class="m-metric-val">85</div></div>
@@ -459,22 +474,22 @@ body {
           <div class="m-lateral-title">左右差分析</div>
           <div class="m-lateral-row">
             <div class="m-lateral-item">
-              <svg width="58" height="58" viewBox="0 0 50 50"><circle cx="25" cy="25" r="18" fill="none" stroke="#1e2d45" stroke-width="4"/><circle cx="25" cy="25" r="18" fill="none" stroke="#C9A84C" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="104" stroke-linecap="round" transform="rotate(-90 25 25)"/><text x="25" y="29" text-anchor="middle" fill="#e8edf5" font-size="9" font-family="DM Serif Display">8%</text></svg>
-              <div class="m-lateral-val">8%</div>
+              <svg width="58" height="58" viewBox="0 0 50 50"><circle cx="25" cy="25" r="18" fill="none" stroke="#1e2d45" stroke-width="4"/><circle id="m-donut-fore-arc" cx="25" cy="25" r="18" fill="none" stroke="#C9A84C" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="104" stroke-linecap="round" transform="rotate(-90 25 25)"/><text id="m-donut-fore-txt" x="25" y="29" text-anchor="middle" fill="#e8edf5" font-size="9" font-family="DM Serif Display">8%</text></svg>
+              <div class="m-lateral-val" id="m-donut-fore-val">8%</div>
               <div class="m-lateral-sub">前肢</div>
-              <div class="m-lateral-sub">左右差小</div>
+              <div class="m-lateral-sub" id="m-donut-fore-note">左右差小</div>
             </div>
             <div class="m-lateral-item">
-              <svg width="58" height="58" viewBox="0 0 50 50"><circle cx="25" cy="25" r="18" fill="none" stroke="#1e2d45" stroke-width="4"/><circle cx="25" cy="25" r="18" fill="none" stroke="#2DCCB4" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="106" stroke-linecap="round" transform="rotate(-90 25 25)"/><text x="25" y="29" text-anchor="middle" fill="#e8edf5" font-size="9" font-family="DM Serif Display">6%</text></svg>
-              <div class="m-lateral-val">6%</div>
+              <svg width="58" height="58" viewBox="0 0 50 50"><circle cx="25" cy="25" r="18" fill="none" stroke="#1e2d45" stroke-width="4"/><circle id="m-donut-hind-arc" cx="25" cy="25" r="18" fill="none" stroke="#2DCCB4" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="106" stroke-linecap="round" transform="rotate(-90 25 25)"/><text id="m-donut-hind-txt" x="25" y="29" text-anchor="middle" fill="#e8edf5" font-size="9" font-family="DM Serif Display">6%</text></svg>
+              <div class="m-lateral-val" id="m-donut-hind-val">6%</div>
               <div class="m-lateral-sub">後肢</div>
-              <div class="m-lateral-sub">左右差小</div>
+              <div class="m-lateral-sub" id="m-donut-hind-note">左右差小</div>
             </div>
             <div class="m-lateral-item">
-              <svg width="58" height="58" viewBox="0 0 50 50"><circle cx="25" cy="25" r="18" fill="none" stroke="#1e2d45" stroke-width="4"/><circle cx="25" cy="25" r="18" fill="none" stroke="#4a8ff5" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="107" stroke-linecap="round" transform="rotate(-90 25 25)"/><text x="25" y="29" text-anchor="middle" fill="#e8edf5" font-size="9" font-family="DM Serif Display">5%</text></svg>
-              <div class="m-lateral-val">5%</div>
+              <svg width="58" height="58" viewBox="0 0 50 50"><circle cx="25" cy="25" r="18" fill="none" stroke="#1e2d45" stroke-width="4"/><circle id="m-donut-contact-arc" cx="25" cy="25" r="18" fill="none" stroke="#4a8ff5" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="107" stroke-linecap="round" transform="rotate(-90 25 25)"/><text id="m-donut-contact-txt" x="25" y="29" text-anchor="middle" fill="#e8edf5" font-size="9" font-family="DM Serif Display">5%</text></svg>
+              <div class="m-lateral-val" id="m-donut-contact-val">5%</div>
               <div class="m-lateral-sub">接地</div>
-              <div class="m-lateral-sub">左右差小</div>
+              <div class="m-lateral-sub" id="m-donut-contact-note">左右差小</div>
             </div>
           </div>
         </div>
@@ -722,6 +737,78 @@ function setMobileVideoView(mode, btn) {
   btn.classList.add('active');
   document.getElementById('mKpSkeleton').style.display = (mode === 'heatmap') ? 'none' : 'block';
   document.getElementById('mKpHeatmap').style.display = (mode === 'heatmap') ? 'block' : 'none';
+}
+
+// ---- 動画アップロード → サーバー解析 (engine/server.py) ----
+const $id = id => document.getElementById(id);
+
+function mSetOverlay(msg, pct) {
+  const ov = $id('m-analyze-overlay');
+  ov.style.display = 'flex';
+  $id('m-analyze-msg').textContent = msg;
+  if (pct == null) { $id('m-analyze-bar').style.width = '0%'; $id('m-analyze-pct').textContent = ''; }
+  else { $id('m-analyze-bar').style.width = pct + '%'; $id('m-analyze-pct').textContent = pct + '%'; }
+}
+
+async function mUploadVideo(file) {
+  if (!file) return;
+  const btn = $id('m-upload-btn');
+  btn.disabled = true;
+  $id('m-result-video').style.display = 'none';
+  mSetOverlay('アップロード中…', null);
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/analyze', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+    const { job_id } = await res.json();
+    await mPollJob(job_id);
+  } catch (e) {
+    $id('m-analyze-overlay').style.display = 'none';
+    alert('解析に失敗しました: ' + e.message + '\n(engine/server.py が起動しているか確認してください)');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function mPollJob(jobId) {
+  while (true) {
+    const res = await fetch('/api/jobs/' + jobId);
+    if (!res.ok) throw new Error('ジョブが見つかりません');
+    const job = await res.json();
+    if (job.status === 'queued') mSetOverlay('解析待ち…', null);
+    else if (job.status === 'loading_model') mSetOverlay('モデル読み込み中…', null);
+    else if (job.status === 'running') {
+      const p = job.progress || {};
+      const pct = p.total ? Math.round(p.done / p.total * 100) : 0;
+      mSetOverlay('AI解析中 (' + (p.done || 0) + '/' + (p.total || '?') + ')', pct);
+    } else if (job.status === 'done') { mShowResult(jobId, job.dashboard); return; }
+    else if (job.status === 'error') throw new Error(job.error || '解析エラー');
+    await new Promise(r => setTimeout(r, 1500));
+  }
+}
+
+function mShowResult(jobId, dash) {
+  $id('m-analyze-overlay').style.display = 'none';
+  const v = $id('m-result-video');
+  v.src = '/api/jobs/' + jobId + '/video';
+  v.style.display = 'block';
+  if (!dash) return;
+  if (dash.gait_score != null) $id('m-metric-gait').textContent = Math.round(dash.gait_score);
+  const lat = dash.lateral || {};
+  mUpdateDonut('fore', lat.foreleg_asymmetry_pct);
+  mUpdateDonut('hind', lat.hindleg_asymmetry_pct);
+  mUpdateDonut('contact', lat.ground_contact_asymmetry_pct);
+}
+
+function mUpdateDonut(kind, pct) {
+  if (pct == null) return;
+  const shown = Math.round(pct);
+  const clamped = Math.min(Math.max(pct, 0), 100);
+  $id('m-donut-' + kind + '-arc').setAttribute('stroke-dashoffset', (113 * (1 - clamped / 100)).toFixed(1));
+  $id('m-donut-' + kind + '-txt').textContent = shown + '%';
+  $id('m-donut-' + kind + '-val').textContent = shown + '%';
+  $id('m-donut-' + kind + '-note').textContent = pct < 10 ? '左右差小' : (pct < 20 ? '左右差中' : '左右差大');
 }
 
 // ---- Home screen internal tab switching (サマリー/タイムライン/ドキュメント) ----

@@ -10,3 +10,7 @@ mmpose>=1.1.0
 # 動画I/O・数値計算
 opencv-python
 numpy
+# 解析サーバー (server.py)
+fastapi
+uvicorn[standard]
+python-multipart

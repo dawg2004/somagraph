@@ -110,7 +110,8 @@ class SomaGraphEngine:
     # ---- 動画処理 ----
 
     def analyze_video(self, video_path: str | Path, out_dir: str | Path,
-                      render: bool = True, progress: bool = True) -> dict:
+                      render: bool = True, progress: bool = True,
+                      progress_cb=None) -> dict:
         """動画全体を解析して out_dir に結果一式を書き出す。
 
         出力:
@@ -118,6 +119,8 @@ class SomaGraphEngine:
           keypoints.csv  — フレーム×関節のロング形式
           dashboard.json — 歩様メトリクス (ダッシュボード用)
         戻り値: dashboard.json と同内容のdict
+
+        progress_cb: callable(done:int, total:int) — 数フレームごとに呼ばれる。
         """
         video_path = Path(video_path)
         out_dir = Path(out_dir)
@@ -172,6 +175,8 @@ class SomaGraphEngine:
                 t += 1
                 if progress and total and t % 30 == 0:
                     print(f"\r  {t}/{total} frames", end="", flush=True)
+                if progress_cb is not None and t % 5 == 0:
+                    progress_cb(t, total)
         finally:
             cap.release()
             if writer is not None:
