@@ -18,7 +18,7 @@ import threading
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
@@ -159,8 +159,20 @@ def job_keypoints(job_id: str):
 
 # ---- ダッシュボード配信 ----
 
+_MOBILE_UA = ("android", "iphone", "ipod", "windows phone",
+              "blackberry", "iemobile", "opera mini", "mobile")
+
+
 @app.get("/")
-def index():
+def index(request: Request):
+    """アクセス元デバイスでPC/スマホビューを自動切替 (URLは / のまま)。"""
+    ua = request.headers.get("user-agent", "").lower()
+    page = "mobile.html" if any(k in ua for k in _MOBILE_UA) else "index.html"
+    return FileResponse(REPO_ROOT / page, media_type="text/html")
+
+
+@app.get("/index.html")
+def desktop():
     return FileResponse(REPO_ROOT / "index.html", media_type="text/html")
 
 

@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>S&#x14D;maGraph</title>
+<script>
+// スマホからPCビューを開いた場合はスマホビューへ (通常は vercel.json / server.py がUAで出し分け)
+(function () {
+  var mobileUA = /Android|iPhone|iPod|Windows Phone|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent);
+  if (mobileUA && !sessionStorage.getItem('somagraph_force_pc')) {
+    location.replace('mobile.html');
+  }
+})();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1179,7 +1188,7 @@ body {
   </div><!-- /scroll-area -->
 </div><!-- /main-wrap -->
 
-<a href="mobile.html" style="position:fixed;bottom:20px;right:20px;z-index:9999;background:var(--gold);color:#0a0c10;border:none;border-radius:24px;padding:10px 18px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 4px 20px rgba(201,168,76,0.4);letter-spacing:0.04em;text-decoration:none;display:inline-block;">
+<a href="mobile.html" onclick="sessionStorage.setItem('somagraph_force_mobile','1')" style="position:fixed;bottom:20px;right:20px;z-index:9999;background:var(--gold);color:#0a0c10;border:none;border-radius:24px;padding:10px 18px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 4px 20px rgba(201,168,76,0.4);letter-spacing:0.04em;text-decoration:none;display:inline-block;">
   &#128241; スマホ版を開く
 </a>
 
