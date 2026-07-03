@@ -789,9 +789,9 @@ body {
               &#21205;&#30011;&#12434;&#12450;&#12483;&#12503;&#12525;&#12540;&#12489;
             </button>
             <input type="file" id="video-file-input" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,.mp4,.mov,.webm,.avi,.mkv,.m4v" style="display:none" onchange="uploadVideo(this.files[0])">
-            <button type="button" class="upload-btn" onclick="analyzeFromUrl()" title="YouTube&#31561;&#12398;URL&#12363;&#12425;&#35299;&#26512;">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-              URL&#12363;&#12425;&#35299;&#26512;
+            <button type="button" class="upload-btn" onclick="analyzeFromUrl()" title="YouTube&#12398;URL&#12363;&#12425;&#35299;&#26512;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M23 7.5a4 4 0 00-2.8-2.8C18.2 4.2 12 4.2 12 4.2s-6.2 0-8.2.5A4 4 0 001 7.5 41 41 0 00.5 12 41 41 0 001 16.5a4 4 0 002.8 2.8c2 .5 8.2.5 8.2.5s6.2 0 8.2-.5a4 4 0 002.8-2.8A41 41 0 0023.5 12 41 41 0 0023 7.5zM9.8 15.3V8.7l6 3.3z"/></svg>
+              YouTube&#12363;&#12425;&#35299;&#26512;
             </button>
             <div class="view-toggle" role="group">
               <button type="button" class="view-toggle-btn active" onclick="setVideoView('skeleton', this)" title="&#12473;&#12465;&#12523;&#12488;&#12531;&#34920;&#31034;">
@@ -1280,7 +1280,7 @@ async function analyzeFromUrl() {
   try {
     if (!(await ensureApi())) return;
     const url = prompt(
-      'YouTube等の動画URLを入力してください。\n' +
+      'YouTubeの動画URLを入力してください。\n' +
       '冒頭30秒を解析します (YouTubeの t= パラメータで開始位置を指定可能):');
     if (!url) return;
     let start = null;
