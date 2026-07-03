@@ -14,3 +14,4 @@ numpy
 fastapi
 uvicorn[standard]
 python-multipart
+yt-dlp

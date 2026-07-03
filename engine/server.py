@@ -21,6 +21,7 @@ from pathlib import Path
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 ENGINE_DIR = Path(__file__).resolve().parent
 REPO_ROOT = ENGINE_DIR.parent
@@ -28,6 +29,10 @@ JOBS_DIR = ENGINE_DIR / "jobs"
 
 ALLOWED_SUFFIXES = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".ogv", ".m4v"}
 MAX_UPLOAD_BYTES = 500 * 1024 * 1024
+# URL解析時に切り出す最大秒数 (CPUでは長尺は現実的でないため)
+URL_MAX_SEC = float(os.environ.get("SOMAGRAPH_URL_MAX_SEC", "30"))
+# ダウンロードを拒否する元動画の長さ上限
+URL_SOURCE_MAX_SEC = 30 * 60
 
 app = FastAPI(title="SomaGraph API")
 
@@ -53,12 +58,56 @@ def _get_engine():
     return _engine
 
 
+def _download_video(url: str, dest_dir: Path,
+                    start_s: float | None, duration_s: float | None) -> Path:
+    """yt-dlpでURLから動画を取得し、解析用に H.264 mp4 へ切り出す。"""
+    import yt_dlp
+
+    ydl_opts = {
+        "outtmpl": str(dest_dir / "source.%(ext)s"),
+        "format": "mp4[height<=720]/best[height<=720]/best",
+        "noplaylist": True,
+        "quiet": True,
+        "no_warnings": True,
+        "max_filesize": MAX_UPLOAD_BYTES,
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+        src_dur = info.get("duration")
+        if src_dur and src_dur > URL_SOURCE_MAX_SEC:
+            raise ValueError(f"動画が長すぎます ({src_dur:.0f}s)。{URL_SOURCE_MAX_SEC // 60}分以内にしてください")
+        info = ydl.extract_info(url, download=True)
+        src = Path(ydl.prepare_filename(info))
+    if not src.exists():
+        raise FileNotFoundError("ダウンロードに失敗しました")
+
+    start = max(float(start_s or 0), 0.0)
+    dur = min(float(duration_s) if duration_s else URL_MAX_SEC, URL_MAX_SEC)
+    out = dest_dir / "input.mp4"
+    if shutil.which("ffmpeg"):
+        subprocess.run(
+            ["ffmpeg", "-y", "-loglevel", "error", "-ss", str(start), "-i", str(src),
+             "-t", str(dur), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an", str(out)],
+            check=True)
+        src.unlink(missing_ok=True)
+    else:
+        if src.suffix.lower() != ".mp4":
+            raise RuntimeError("ffmpegが無い環境ではmp4のURLのみ対応です")
+        src.rename(out)
+    return out
+
+
 def _worker():
     """1本ずつ順番に解析する常駐ワーカー (モデルは同時実行不可)。"""
     while True:
         job_id = _queue.get()
         job = _jobs[job_id]
         try:
+            if job.get("source_url"):
+                job["status"] = "downloading"
+                job["input"] = str(_download_video(
+                    job["source_url"], Path(job["dir"]),
+                    job.get("start_s"), job.get("duration_s")))
             job["status"] = "loading_model"
             engine = _get_engine()
             job["status"] = "running"
@@ -121,6 +170,34 @@ async def analyze(file: UploadFile = File(...)):
         "input": str(input_path),
         "dir": str(job_dir),
         "filename": file.filename,
+        "progress": {"done": 0, "total": 0},
+    }
+    _queue.put(job_id)
+    return {"job_id": job_id}
+
+
+class AnalyzeUrlRequest(BaseModel):
+    url: str
+    start_s: float | None = None
+    duration_s: float | None = None
+
+
+@app.post("/api/analyze_url")
+def analyze_url(req: AnalyzeUrlRequest):
+    """YouTube等のURLから動画を取得して解析ジョブに投入する。"""
+    if not req.url.lower().startswith(("http://", "https://")):
+        raise HTTPException(400, "http/https のURLを指定してください")
+
+    job_id = uuid.uuid4().hex[:12]
+    job_dir = JOBS_DIR / job_id
+    job_dir.mkdir(parents=True, exist_ok=True)
+    _jobs[job_id] = {
+        "status": "queued",
+        "source_url": req.url,
+        "start_s": req.start_s,
+        "duration_s": req.duration_s,
+        "dir": str(job_dir),
+        "filename": req.url,
         "progress": {"done": 0, "total": 0},
     }
     _queue.put(job_id)

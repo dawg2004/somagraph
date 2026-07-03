@@ -87,9 +87,15 @@ API:
 | エンドポイント | 内容 |
 |---|---|
 | `POST /api/analyze` (multipart `file`) | ジョブ投入 → `{job_id}` |
+| `POST /api/analyze_url` (`{url, start_s?, duration_s?}`) | YouTube等のURLから取得して解析 |
 | `GET /api/jobs/{id}` | 状態・進捗・dashboard JSON |
 | `GET /api/jobs/{id}/video` | 骨格オーバーレイ動画 (H.264) |
 | `GET /api/jobs/{id}/keypoints.csv` | キーポイントCSV |
+
+URL解析は yt-dlp で取得し、既定で冒頭 **30秒** を切り出して解析する
+(`SOMAGRAPH_URL_MAX_SEC` で変更可)。YouTube URLの `t=` パラメータを
+開始位置として拾う。元動画30分超は拒否。権利のある動画・許可された
+動画のみ利用すること。
 
 GPUで動かす場合は `SOMAGRAPH_DEVICE=cuda:0 python server.py`。
 

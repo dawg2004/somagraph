@@ -789,6 +789,10 @@ body {
               &#21205;&#30011;&#12434;&#12450;&#12483;&#12503;&#12525;&#12540;&#12489;
             </button>
             <input type="file" id="video-file-input" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,.mp4,.mov,.webm,.avi,.mkv,.m4v" style="display:none" onchange="uploadVideo(this.files[0])">
+            <button type="button" class="upload-btn" onclick="analyzeFromUrl()" title="YouTube&#31561;&#12398;URL&#12363;&#12425;&#35299;&#26512;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+              URL&#12363;&#12425;&#35299;&#26512;
+            </button>
             <div class="view-toggle" role="group">
               <button type="button" class="view-toggle-btn active" onclick="setVideoView('skeleton', this)" title="&#12473;&#12465;&#12523;&#12488;&#12531;&#34920;&#31034;">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="12" r="2"/><circle cx="9" cy="20" r="2"/><circle cx="16" cy="20" r="2"/><path d="M12 7v5M6 14l3 4M18 14l-2 4"/></svg>
@@ -1272,12 +1276,44 @@ function setOverlay(msg, pct) {
   else { $('analyze-bar').style.width = pct + '%'; $('analyze-pct').textContent = pct + '%'; }
 }
 
+async function analyzeFromUrl() {
+  try {
+    if (!(await ensureApi())) return;
+    const url = prompt(
+      'YouTube等の動画URLを入力してください。\n' +
+      '冒頭30秒を解析します (YouTubeの t= パラメータで開始位置を指定可能):');
+    if (!url) return;
+    let start = null;
+    try {
+      const t = new URL(url).searchParams.get('t');
+      if (t) start = parseFloat(t);
+    } catch (e) {}
+    $('result-video').style.display = 'none';
+    setOverlay('動画を取得中…', null);
+    $('ai-status').textContent = 'ダウンロード中';
+    const res = await fetch(apiBase() + '/api/analyze_url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url, start_s: start }),
+    });
+    const body = await parseJson(res);
+    if (!res.ok) throw new Error(body.detail || res.statusText);
+    try { $('footage-label').textContent = new URL(url).hostname.toUpperCase(); } catch (e) {}
+    await pollJob(body.job_id);
+  } catch (e) {
+    $('analyze-overlay').style.display = 'none';
+    $('ai-status').textContent = 'エラー';
+    alert('解析に失敗しました: ' + e.message);
+  }
+}
+
 async function pollJob(jobId) {
   while (true) {
     const res = await fetch(apiBase() + '/api/jobs/' + jobId);
     if (!res.ok) throw new Error('ジョブが見つかりません');
     const job = await parseJson(res);
     if (job.status === 'queued') setOverlay('解析待ち…', null);
+    else if (job.status === 'downloading') setOverlay('動画をダウンロード中…', null);
     else if (job.status === 'loading_model') setOverlay('モデル読み込み中…', null);
     else if (job.status === 'running') {
       const p = job.progress || {};
