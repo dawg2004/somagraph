@@ -19,6 +19,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 ENGINE_DIR = Path(__file__).resolve().parent
@@ -29,6 +30,14 @@ ALLOWED_SUFFIXES = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".ogv", ".m4v"}
 MAX_UPLOAD_BYTES = 500 * 1024 * 1024
 
 app = FastAPI(title="SomaGraph API")
+
+# 静的ホスティング(Vercel等)上のダッシュボードからも叩けるようにする
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
 
 _jobs: dict[str, dict] = {}
 _queue: "queue.Queue[str]" = queue.Queue()
@@ -79,6 +88,11 @@ def _worker():
 
 
 threading.Thread(target=_worker, daemon=True).start()
+
+
+@app.get("/api/health")
+def health():
+    return {"ok": True, "engine": "somagraph-mmpose"}
 
 
 @app.post("/api/analyze")

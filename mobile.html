@@ -742,6 +742,37 @@ function setMobileVideoView(mode, btn) {
 // ---- 動画アップロード → サーバー解析 (engine/server.py) ----
 const $id = id => document.getElementById(id);
 
+// 静的ホスティング(Vercel等)で開いた場合は解析サーバーのURLを別途指定する。
+function mApiBase() { return (localStorage.getItem('somagraph_api') || '').replace(/\/$/, ''); }
+
+async function mApiReachable() {
+  try {
+    const r = await fetch(mApiBase() + '/api/health');
+    return r.ok && (await r.json()).ok === true;
+  } catch (e) { return false; }
+}
+
+async function mEnsureApi() {
+  if (await mApiReachable()) return true;
+  const cur = mApiBase() || 'http://localhost:8760';
+  const url = prompt(
+    '解析サーバーに接続できません。\n' +
+    'このページは静的ホスティング上のため、解析には別途サーバーが必要です。\n\n' +
+    '手元のマシンで:\n  cd engine && .venv/bin/python server.py\n' +
+    'を起動し、そのURLを入力してください:', cur);
+  if (!url) return false;
+  localStorage.setItem('somagraph_api', url.replace(/\/$/, ''));
+  if (await mApiReachable()) return true;
+  alert('サーバーに接続できません: ' + mApiBase() + '\n(起動しているか、URLが正しいか確認してください)');
+  return false;
+}
+
+async function mParseJson(res) {
+  const text = await res.text();
+  try { return JSON.parse(text); }
+  catch (e) { throw new Error('サーバーの応答がJSONではありません (HTTP ' + res.status + ')'); }
+}
+
 function mSetOverlay(msg, pct) {
   const ov = $id('m-analyze-overlay');
   ov.style.display = 'flex';
@@ -757,15 +788,19 @@ async function mUploadVideo(file) {
   $id('m-result-video').style.display = 'none';
   mSetOverlay('アップロード中…', null);
   try {
+    if (!(await mEnsureApi())) {
+      $id('m-analyze-overlay').style.display = 'none';
+      return;
+    }
     const fd = new FormData();
     fd.append('file', file);
-    const res = await fetch('/api/analyze', { method: 'POST', body: fd });
-    if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
-    const { job_id } = await res.json();
-    await mPollJob(job_id);
+    const res = await fetch(mApiBase() + '/api/analyze', { method: 'POST', body: fd });
+    const body = await mParseJson(res);
+    if (!res.ok) throw new Error(body.detail || res.statusText);
+    await mPollJob(body.job_id);
   } catch (e) {
     $id('m-analyze-overlay').style.display = 'none';
-    alert('解析に失敗しました: ' + e.message + '\n(engine/server.py が起動しているか確認してください)');
+    alert('解析に失敗しました: ' + e.message);
   } finally {
     btn.disabled = false;
   }
@@ -773,9 +808,9 @@ async function mUploadVideo(file) {
 
 async function mPollJob(jobId) {
   while (true) {
-    const res = await fetch('/api/jobs/' + jobId);
+    const res = await fetch(mApiBase() + '/api/jobs/' + jobId);
     if (!res.ok) throw new Error('ジョブが見つかりません');
-    const job = await res.json();
+    const job = await mParseJson(res);
     if (job.status === 'queued') mSetOverlay('解析待ち…', null);
     else if (job.status === 'loading_model') mSetOverlay('モデル読み込み中…', null);
     else if (job.status === 'running') {
@@ -791,7 +826,7 @@ async function mPollJob(jobId) {
 function mShowResult(jobId, dash) {
   $id('m-analyze-overlay').style.display = 'none';
   const v = $id('m-result-video');
-  v.src = '/api/jobs/' + jobId + '/video';
+  v.src = mApiBase() + '/api/jobs/' + jobId + '/video';
   v.style.display = 'block';
   if (!dash) return;
   if (dash.gait_score != null) $id('m-metric-gait').textContent = Math.round(dash.gait_score);

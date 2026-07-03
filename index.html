@@ -1194,12 +1194,36 @@ function setVideoView(mode, btn) {
 // ---- 動画アップロード → サーバー解析 (engine/server.py) ----
 const $ = id => document.getElementById(id);
 
-function setOverlay(msg, pct) {
-  const ov = $('analyze-overlay');
-  ov.style.display = 'flex';
-  $('analyze-msg').textContent = msg;
-  if (pct == null) { $('analyze-bar').style.width = '0%'; $('analyze-pct').textContent = ''; }
-  else { $('analyze-bar').style.width = pct + '%'; $('analyze-pct').textContent = pct + '%'; }
+// 静的ホスティング(Vercel等)で開いた場合は解析サーバーのURLを別途指定する。
+// localStorage 'somagraph_api' に保存 (例: http://localhost:8760)。
+function apiBase() { return (localStorage.getItem('somagraph_api') || '').replace(/\/$/, ''); }
+
+async function apiReachable() {
+  try {
+    const r = await fetch(apiBase() + '/api/health');
+    return r.ok && (await r.json()).ok === true;
+  } catch (e) { return false; }
+}
+
+async function ensureApi() {
+  if (await apiReachable()) return true;
+  const cur = apiBase() || 'http://localhost:8760';
+  const url = prompt(
+    '解析サーバーに接続できません。\n' +
+    'このページは静的ホスティング上のため、解析には別途サーバーが必要です。\n\n' +
+    '手元のマシンで:\n  cd engine && .venv/bin/python server.py\n' +
+    'を起動し、そのURLを入力してください:', cur);
+  if (!url) return false;
+  localStorage.setItem('somagraph_api', url.replace(/\/$/, ''));
+  if (await apiReachable()) return true;
+  alert('サーバーに接続できません: ' + apiBase() + '\n(起動しているか、URLが正しいか確認してください)');
+  return false;
+}
+
+async function parseJson(res) {
+  const text = await res.text();
+  try { return JSON.parse(text); }
+  catch (e) { throw new Error('サーバーの応答がJSONではありません (HTTP ' + res.status + ')'); }
 }
 
 async function uploadVideo(file) {
@@ -1210,27 +1234,40 @@ async function uploadVideo(file) {
   setOverlay('アップロード中…', null);
   $('ai-status').textContent = 'アップロード中';
   try {
+    if (!(await ensureApi())) {
+      $('analyze-overlay').style.display = 'none';
+      $('ai-status').textContent = 'AI分析中';
+      return;
+    }
     const fd = new FormData();
     fd.append('file', file);
-    const res = await fetch('/api/analyze', { method: 'POST', body: fd });
-    if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
-    const { job_id } = await res.json();
+    const res = await fetch(apiBase() + '/api/analyze', { method: 'POST', body: fd });
+    const body = await parseJson(res);
+    if (!res.ok) throw new Error(body.detail || res.statusText);
     $('footage-label').textContent = file.name.toUpperCase();
-    await pollJob(job_id);
+    await pollJob(body.job_id);
   } catch (e) {
     $('analyze-overlay').style.display = 'none';
     $('ai-status').textContent = 'エラー';
-    alert('解析に失敗しました: ' + e.message + '\n(engine/server.py が起動しているか確認してください)');
+    alert('解析に失敗しました: ' + e.message);
   } finally {
     btn.disabled = false;
   }
 }
 
+function setOverlay(msg, pct) {
+  const ov = $('analyze-overlay');
+  ov.style.display = 'flex';
+  $('analyze-msg').textContent = msg;
+  if (pct == null) { $('analyze-bar').style.width = '0%'; $('analyze-pct').textContent = ''; }
+  else { $('analyze-bar').style.width = pct + '%'; $('analyze-pct').textContent = pct + '%'; }
+}
+
 async function pollJob(jobId) {
   while (true) {
-    const res = await fetch('/api/jobs/' + jobId);
+    const res = await fetch(apiBase() + '/api/jobs/' + jobId);
     if (!res.ok) throw new Error('ジョブが見つかりません');
-    const job = await res.json();
+    const job = await parseJson(res);
     if (job.status === 'queued') setOverlay('解析待ち…', null);
     else if (job.status === 'loading_model') setOverlay('モデル読み込み中…', null);
     else if (job.status === 'running') {
@@ -1251,7 +1288,7 @@ async function pollJob(jobId) {
 function showResult(jobId, dash) {
   $('analyze-overlay').style.display = 'none';
   const v = $('result-video');
-  v.src = '/api/jobs/' + jobId + '/video';
+  v.src = apiBase() + '/api/jobs/' + jobId + '/video';
   v.style.display = 'block';
   $('ai-status').textContent = '解析完了';
   if (!dash) return;

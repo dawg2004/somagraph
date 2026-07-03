@@ -93,6 +93,19 @@ API:
 
 GPUで動かす場合は `SOMAGRAPH_DEVICE=cuda:0 python server.py`。
 
+#### 静的ホスティング (Vercel等) から使う場合
+
+Vercel にはPython解析サーバーが載らないため、ダッシュボードだけが配信される。
+アップロード時に「解析サーバーに接続できません」のプロンプトが出るので、
+手元で `server.py` を起動して `http://localhost:8760` を入力する
+(URLは localStorage に保存され、次回以降は聞かれない)。
+
+- Chrome/Edge: https ページから `http://localhost` への接続は許可される
+- Safari 等でブロックされる場合や、別マシンから使う場合は
+  `cloudflared tunnel --url http://localhost:8760` などで https の
+  トンネルURLを作ってそれを入力する
+- CORS はサーバー側で許可済み (`allow_origins=["*"]`)
+
 ### Python API
 
 ```python
