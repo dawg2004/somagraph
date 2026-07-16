@@ -38,12 +38,15 @@ def grade_of(score: float | None) -> str | None:
     return "C"
 
 
-def build_dashboard_json(gait: dict, video_path: str | Path) -> dict:
+def build_dashboard_json(gait: dict, video_path: str | Path,
+                         conformation: dict | None = None) -> dict:
     """ダッシュボード(index.html / mobile.html)が読む想定のJSON。
 
-    動画から導出できるのは歩様系のみ。血統・気性などは動画外情報なのでnull。
+    歩様系は動画から導出。馬体(conformation)は立ち姿フレームの計測と
+    学習済みモデルがあればスコア。血統・気性などは動画外情報なのでnull。
     """
     score = gait.get("gait_score")
+    conf_score = (conformation or {}).get("score")
     return {
         "source_video": str(video_path),
         "engine": "somagraph-mmpose",
@@ -58,8 +61,10 @@ def build_dashboard_json(gait: dict, video_path: str | Path) -> dict:
         "stride_period_s": gait.get("stride_period_s"),
         "frames": gait.get("frames"),
         "fps": gait.get("fps"),
+        # 馬体: 立ち姿フレームからの計測 + プラガブルな分類器スコア
+        "conformation": conformation,
+        "conformation_score": conf_score,
         # 動画から導出できない項目 (外部データで埋める)
-        "conformation_score": None,
         "temperament_score": None,
         "pedigree_score": None,
         "growth_potential": None,
@@ -67,7 +72,8 @@ def build_dashboard_json(gait: dict, video_path: str | Path) -> dict:
     }
 
 
-def write_dashboard_json(path: str | Path, gait: dict, video_path: str | Path) -> dict:
-    data = build_dashboard_json(gait, video_path)
+def write_dashboard_json(path: str | Path, gait: dict, video_path: str | Path,
+                         conformation: dict | None = None) -> dict:
+    data = build_dashboard_json(gait, video_path, conformation)
     Path(path).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     return data

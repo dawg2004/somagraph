@@ -290,6 +290,18 @@ def job_keypoints(job_id: str):
     return FileResponse(Path(job["dir"]) / "keypoints.csv", media_type="text/csv")
 
 
+@app.get("/api/jobs/{job_id}/standing.jpg")
+def job_standing(job_id: str):
+    """立ち姿として抽出したフレーム (馬体評価用クロップ)。"""
+    job = _jobs.get(job_id)
+    if job is None or job.get("status") != "done":
+        raise HTTPException(404, "not ready")
+    path = Path(job["dir"]) / "standing_crop.jpg"
+    if not path.exists():
+        raise HTTPException(404, "standing frame not found")
+    return FileResponse(path, media_type="image/jpeg")
+
+
 # ---- ダッシュボード配信 ----
 
 _MOBILE_UA = ("android", "iphone", "ipod", "windows phone",

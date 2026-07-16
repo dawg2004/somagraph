@@ -471,7 +471,7 @@ body {
             </div>
             <div class="m-metrics-grid">
               <div class="m-metric"><div class="m-metric-lbl">歩様</div><div class="m-metric-val" id="m-metric-gait">92</div></div>
-              <div class="m-metric"><div class="m-metric-lbl">馬体</div><div class="m-metric-val">93</div></div>
+              <div class="m-metric"><div class="m-metric-lbl">馬体</div><div class="m-metric-val" id="m-metric-body">93</div></div>
               <div class="m-metric"><div class="m-metric-lbl">筋肉</div><div class="m-metric-val">91</div></div>
               <div class="m-metric"><div class="m-metric-lbl">気性</div><div class="m-metric-val">85</div></div>
               <div class="m-metric"><div class="m-metric-lbl">血統</div><div class="m-metric-val">89</div></div>
@@ -873,6 +873,7 @@ function mShowResult(jobId, dash) {
   v.style.display = 'block';
   if (!dash) return;
   if (dash.gait_score != null) $id('m-metric-gait').textContent = Math.round(dash.gait_score);
+  if (dash.conformation_score != null) $id('m-metric-body').textContent = Math.round(dash.conformation_score * 100);
   const lat = dash.lateral || {};
   mUpdateDonut('fore', lat.foreleg_asymmetry_pct);
   mUpdateDonut('hind', lat.hindleg_asymmetry_pct);

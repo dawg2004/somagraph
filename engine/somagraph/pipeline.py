@@ -22,6 +22,7 @@ from .skeleton import COCO_HORSE_CLASS_ID, KEYPOINT_NAMES
 from .metrics import compute_gait_metrics
 from .visualize import draw_skeleton
 from .export import write_keypoints_csv, write_dashboard_json
+from . import conformation
 
 # mim download で使うモデル名 (config/checkpointが models/ に落ちる)
 DET_MODEL_NAME = "rtmdet_m_8xb32-300e_coco"
@@ -143,6 +144,7 @@ class SomaGraphEngine:
         n_kp = len(KEYPOINT_NAMES)
         all_kps: list[np.ndarray] = []
         all_scores: list[np.ndarray] = []
+        all_bboxes: list[np.ndarray | None] = []
         last_bbox: np.ndarray | None = None
         miss = 0
         t = 0
@@ -166,6 +168,7 @@ class SomaGraphEngine:
                     scores = np.zeros(n_kp)
                 all_kps.append(kps)
                 all_scores.append(scores)
+                all_bboxes.append(bbox)
 
                 if writer is not None:
                     vis = draw_skeleton(frame, kps, scores, self.cfg.kpt_score_thr) \
@@ -189,4 +192,35 @@ class SomaGraphEngine:
 
         write_keypoints_csv(out_dir / "keypoints.csv", keypoints, scores, fps)
         gait = compute_gait_metrics(keypoints, scores, fps, self.cfg.kpt_score_thr)
-        return write_dashboard_json(out_dir / "dashboard.json", gait, video_path)
+        conf = self._analyze_conformation(
+            video_path, out_dir, keypoints, scores, all_bboxes, fps)
+        return write_dashboard_json(out_dir / "dashboard.json", gait, video_path,
+                                    conformation=conf)
+
+    def _analyze_conformation(self, video_path: Path, out_dir: Path,
+                              keypoints: np.ndarray, scores: np.ndarray,
+                              bboxes: list, fps: float) -> dict | None:
+        """立ち姿フレームを抽出し、計測と(モデルがあれば)スコアリングを行う。"""
+        idx = conformation.select_standing_frame(
+            keypoints, scores, self.cfg.kpt_score_thr)
+        if idx is None or bboxes[idx] is None:
+            return None
+        cap = cv2.VideoCapture(str(video_path))
+        try:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+            ok, frame = cap.read()
+        finally:
+            cap.release()
+        if not ok:
+            return None
+
+        crop = conformation.crop_horse(frame, bboxes[idx])
+        cv2.imwrite(str(out_dir / "standing_frame.jpg"), frame)
+        cv2.imwrite(str(out_dir / "standing_crop.jpg"), crop)
+        return {
+            "score": conformation.score_conformation(crop),
+            "standing_frame_index": idx,
+            "standing_frame_time_s": round(idx / fps, 2),
+            "measurements": conformation.measure_conformation(
+                keypoints[idx], scores[idx], self.cfg.kpt_score_thr),
+        }

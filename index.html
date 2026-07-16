@@ -750,7 +750,7 @@ body {
           </div>
           <div class="metric">
             <div class="metric-lbl">&#39340;&#20307;</div>
-            <div class="metric-val">93</div>
+            <div class="metric-val" id="metric-body">93</div>
           </div>
           <div class="metric">
             <div class="metric-lbl">&#31109;&#32026;</div>
@@ -1338,6 +1338,7 @@ function showResult(jobId, dash) {
   $('ai-status').textContent = '解析完了';
   if (!dash) return;
   if (dash.gait_score != null) $('metric-gait').textContent = Math.round(dash.gait_score);
+  if (dash.conformation_score != null) $('metric-body').textContent = Math.round(dash.conformation_score * 100);
   const lat = dash.lateral || {};
   updateDonut('fore', lat.foreleg_asymmetry_pct);
   updateDonut('hind', lat.hindleg_asymmetry_pct);

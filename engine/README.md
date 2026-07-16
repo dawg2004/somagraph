@@ -131,6 +131,25 @@ engine = SomaGraphEngine(EngineConfig(device="cuda:0"))
 dashboard = engine.analyze_video("input.mp4", "results/")
 ```
 
+## 馬体評価 (`somagraph/conformation.py`)
+
+歩様と別軸で、動画から**立ち姿フレーム**を自動抽出して馬体を評価する。
+(立ち姿写真の分類で競走成績と相関するスコアが得られたという
+[報告](https://note.com/kjmd1/n/n3e1f871ed278) の枠組みを取り込んだもの)
+
+1. **立ち姿抽出** — キーポイント信頼度 × 静止度 × 横向き度が最大のフレームを選出。
+   `standing_frame.jpg` (全体) / `standing_crop.jpg` (馬クロップ) を出力
+2. **体型計測** — トップライン傾き(度)・脚長/体長比・前後肢接地間隔比
+   (撮影距離に依存しない相対値) を `dashboard.json` の `conformation.measurements` へ
+3. **スコアリング (プラガブル)** — TorchScript分類器
+   (入力 1x3x224x224 RGB [0,1] / 出力 logit) を `models/conformation.pt` か
+   `SOMAGRAPH_CONFORMATION_MODEL` に置くと `conformation_score` (0..1) が出る。
+   **モデルが無い場合は null** (立ち姿抽出と計測のみ動作)。
+   学習データは「立ち姿クロップ × 走った/走らないラベル」で用意する
+
+API: `GET /api/jobs/{id}/standing.jpg` で立ち姿クロップを取得できる。
+UIはスコアがあるときのみ「馬体」欄を実測値 (0-100表示) に更新する。
+
 ## メトリクスの定義 (`somagraph/metrics.py`)
 
 - **左右差 前肢/後肢** — 左右の蹄の上下動振幅の非対称率(%)
