@@ -39,14 +39,17 @@ def grade_of(score: float | None) -> str | None:
 
 
 def build_dashboard_json(gait: dict, video_path: str | Path,
-                         conformation: dict | None = None) -> dict:
+                         conformation: dict | None = None,
+                         pedigree: dict | None = None) -> dict:
     """ダッシュボード(index.html / mobile.html)が読む想定のJSON。
 
     歩様系は動画から導出。馬体(conformation)は立ち姿フレームの計測と
-    学習済みモデルがあればスコア。血統・気性などは動画外情報なのでnull。
+    学習済みモデルがあればスコア。血統(pedigree)はユーザーが用意した
+    血統CSVに馬名が見つかった場合のみ埋まる。気性などは対応データが無くnull。
     """
     score = gait.get("gait_score")
     conf_score = (conformation or {}).get("score")
+    ped_score = (pedigree or {}).get("score")
     return {
         "source_video": str(video_path),
         "engine": "somagraph-mmpose",
@@ -64,16 +67,19 @@ def build_dashboard_json(gait: dict, video_path: str | Path,
         # 馬体: 立ち姿フレームからの計測 + プラガブルな分類器スコア
         "conformation": conformation,
         "conformation_score": conf_score,
-        # 動画から導出できない項目 (外部データで埋める)
+        # 血統: ユーザー提供の血統CSVからの構造分析 + プラガブルなスコア
+        "pedigree": pedigree,
+        "pedigree_score": ped_score,
+        # 動画・血統CSVから導出できない項目 (外部データで埋める)
         "temperament_score": None,
-        "pedigree_score": None,
         "growth_potential": None,
         "injury_risk_grade": None,
     }
 
 
 def write_dashboard_json(path: str | Path, gait: dict, video_path: str | Path,
-                         conformation: dict | None = None) -> dict:
-    data = build_dashboard_json(gait, video_path, conformation)
+                         conformation: dict | None = None,
+                         pedigree: dict | None = None) -> dict:
+    data = build_dashboard_json(gait, video_path, conformation, pedigree)
     Path(path).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     return data

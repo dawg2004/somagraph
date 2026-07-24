@@ -10,6 +10,9 @@
 """
 from __future__ import annotations
 
+import csv
+import io
+import json
 import os
 import queue
 import shutil
@@ -18,7 +21,7 @@ import threading
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -26,6 +29,8 @@ from pydantic import BaseModel
 ENGINE_DIR = Path(__file__).resolve().parent
 REPO_ROOT = ENGINE_DIR.parent
 JOBS_DIR = ENGINE_DIR / "jobs"
+# 血統CSV (手動で用意したデータのみ。自動収集はしない。README #血統評価 参照)
+PEDIGREE_CSV = Path(os.environ.get("SOMAGRAPH_PEDIGREE_CSV", str(ENGINE_DIR / "data" / "pedigree.csv")))
 
 ALLOWED_SUFFIXES = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".ogv", ".m4v"}
 MAX_UPLOAD_BYTES = 500 * 1024 * 1024
@@ -153,6 +158,29 @@ def _probe_duration(path: Path) -> float | None:
         return None
 
 
+def _apply_pedigree(dashboard: dict, out_dir: Path, horse_name: str | None) -> dict:
+    """馬名が指定され、血統CSVに載っていれば dashboard に血統分析をマージする。
+
+    CSVに無い/馬名未指定なら何もしない (pedigree系はnullのまま)。
+    """
+    if not horse_name:
+        return dashboard
+    from somagraph import pedigree
+
+    table = pedigree.load_pedigree_table(PEDIGREE_CSV)
+    summary = pedigree.pedigree_summary(horse_name, table)
+    if summary is None:
+        dashboard["pedigree_lookup_error"] = f"「{horse_name}」は血統CSVに見つかりませんでした"
+        return dashboard
+    score = pedigree.score_pedigree(summary)
+    summary["score"] = score
+    dashboard["pedigree"] = summary
+    dashboard["pedigree_score"] = score
+    (out_dir / "dashboard.json").write_text(
+        json.dumps(dashboard, ensure_ascii=False, indent=2), encoding="utf-8")
+    return dashboard
+
+
 def _worker():
     """1本ずつ順番に解析する常駐ワーカー (モデルは同時実行不可)。"""
     while True:
@@ -174,6 +202,7 @@ def _worker():
             out_dir = Path(job["dir"])
             dashboard = engine.analyze_video(
                 job["input"], out_dir, render=True, progress=False, progress_cb=cb)
+            dashboard = _apply_pedigree(dashboard, out_dir, job.get("horse_name"))
 
             raw = out_dir / "annotated.mp4"
             web = out_dir / "annotated_h264.mp4"
@@ -201,7 +230,7 @@ def health():
 
 
 @app.post("/api/analyze")
-async def analyze(file: UploadFile = File(...)):
+async def analyze(file: UploadFile = File(...), horse_name: str | None = Form(None)):
     suffix = Path(file.filename or "upload.mp4").suffix.lower()
     if suffix not in ALLOWED_SUFFIXES:
         raise HTTPException(400, f"未対応の形式です: {suffix}")
@@ -226,6 +255,7 @@ async def analyze(file: UploadFile = File(...)):
         "input": str(input_path),
         "dir": str(job_dir),
         "filename": file.filename,
+        "horse_name": (horse_name or "").strip() or None,
         "progress": {"done": 0, "total": 0},
     }
     _queue.put(job_id)
@@ -236,6 +266,7 @@ class AnalyzeUrlRequest(BaseModel):
     url: str
     start_s: float | None = None
     duration_s: float | None = None
+    horse_name: str | None = None
 
 
 @app.post("/api/analyze_url")
@@ -254,6 +285,7 @@ def analyze_url(req: AnalyzeUrlRequest):
         "duration_s": req.duration_s,
         "dir": str(job_dir),
         "filename": req.url,
+        "horse_name": (req.horse_name or "").strip() or None,
         "progress": {"done": 0, "total": 0},
     }
     _queue.put(job_id)
@@ -300,6 +332,33 @@ def job_standing(job_id: str):
     if not path.exists():
         raise HTTPException(404, "standing frame not found")
     return FileResponse(path, media_type="image/jpeg")
+
+
+# ---- 血統CSV (ユーザーが手動で用意したデータのみ扱う。自動収集はしない) ----
+
+@app.post("/api/pedigree")
+async def upload_pedigree(file: UploadFile = File(...)):
+    """血統CSV(馬名,父,母,生年)をアップロードし、既存データにマージする。"""
+    raw = (await file.read()).decode("utf-8-sig")
+    reader = csv.DictReader(io.StringIO(raw))
+    rows = list(reader)
+    if not rows:
+        raise HTTPException(400, "CSVが空か、ヘッダーが読み取れません")
+    from somagraph import pedigree
+    count = pedigree.upsert_pedigree_rows(PEDIGREE_CSV, rows)
+    return {"total_horses": count, "added_or_updated": len(rows)}
+
+
+@app.get("/api/pedigree/{horse_name}")
+def lookup_pedigree(horse_name: str):
+    """血統CSVから単体で馬名を引く (動画解析なしで確認用)。"""
+    from somagraph import pedigree
+    table = pedigree.load_pedigree_table(PEDIGREE_CSV)
+    summary = pedigree.pedigree_summary(horse_name, table)
+    if summary is None:
+        raise HTTPException(404, f"「{horse_name}」は血統CSVに見つかりません")
+    summary["score"] = pedigree.score_pedigree(summary)
+    return summary
 
 
 # ---- ダッシュボード配信 ----

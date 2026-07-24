@@ -17,3 +17,6 @@ venv/
 
 # server uploads/jobs
 engine/jobs/
+
+# 血統CSV (studbook.jp/JBIS等の利用規約上、実データを配布できないため)
+engine/data/

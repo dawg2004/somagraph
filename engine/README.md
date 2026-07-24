@@ -150,6 +150,31 @@ dashboard = engine.analyze_video("input.mp4", "results/")
 API: `GET /api/jobs/{id}/standing.jpg` で立ち姿クロップを取得できる。
 UIはスコアがあるときのみ「馬体」欄を実測値 (0-100表示) に更新する。
 
+## 血統評価 (`somagraph/pedigree.py`)
+
+**データ源について:** studbook.jp (JAIRS) と JBIS-Search はいずれも利用規約で
+「データベースの解析」や「私的利用/軽種馬生産・育成牧場の内部利用を超える
+複製」を禁止しており (JBISはrobots.txtでClaudeBotも明示的に拒否)、
+本機能は**それらへの自動アクセスは一切行わない**。あくまでユーザーが
+手動で確認・入力した血統CSVを読み込むだけの仕組み。
+
+1. **血統CSV** — `馬名,父,母,生年` のフラットな系図テーブル
+   (`engine/data/pedigree.csv`、gitignore対象。テンプレは
+   `engine/samples/pedigree.template.csv` に架空データで例示)。
+   `POST /api/pedigree` でCSVアップロード → 既存データにマージ(同名は上書き)
+2. **血統樹の再構築** — 指定した馬名からテーブルを再帰的に辿り、何代分
+   判明しているか (`generations_known`) を計算。祖先が未登録ならその枝で打ち切り
+3. **近親係数 (Wright's coefficient) の近似計算** — 父方・母方に共通して
+   現れる祖先を検出し、`0.5^(n1+n2+1)` の総和で概算。クロス配合の
+   手がかりになる `notable_duplicate_ancestors` も出力
+4. **スコアリング (プラガブル)** — 特徴量への重み付け(JSON)を
+   `models/pedigree_weights.json` に置くとロジスティック回帰的に
+   `pedigree_score` (0..1) を計算。**無ければ null** (構造分析は出る)
+
+API: `POST /api/pedigree` (CSVアップロード) / `GET /api/pedigree/{馬名}`
+(動画解析なしで血統だけ確認)。動画解析時に `horse_name` を渡すと
+`dashboard.json` に自動でマージされる。
+
 ## メトリクスの定義 (`somagraph/metrics.py`)
 
 - **左右差 前肢/後肢** — 左右の蹄の上下動振幅の非対称率(%)

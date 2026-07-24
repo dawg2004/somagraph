@@ -474,7 +474,7 @@ body {
               <div class="m-metric"><div class="m-metric-lbl">馬体</div><div class="m-metric-val" id="m-metric-body">93</div></div>
               <div class="m-metric"><div class="m-metric-lbl">筋肉</div><div class="m-metric-val">91</div></div>
               <div class="m-metric"><div class="m-metric-lbl">気性</div><div class="m-metric-val">85</div></div>
-              <div class="m-metric"><div class="m-metric-lbl">血統</div><div class="m-metric-val">89</div></div>
+              <div class="m-metric"><div class="m-metric-lbl">血統</div><div class="m-metric-val" id="m-metric-pedigree">89</div></div>
               <div class="m-metric"><div class="m-metric-lbl">成長余地</div><div class="m-metric-val">94</div></div>
             </div>
             <div style="margin-top:10px;padding:9px 10px;background:var(--bg3);border-radius:8px;display:flex;align-items:center;justify-content:space-between">
@@ -808,6 +808,8 @@ async function mUploadVideo(file) {
     }
     const fd = new FormData();
     fd.append('file', file);
+    const horseName = mPromptHorseName();
+    if (horseName) fd.append('horse_name', horseName);
     const res = await fetch(mApiBase() + '/api/analyze', { method: 'POST', body: fd });
     const body = await mParseJson(res);
     if (!res.ok) throw new Error(body.detail || res.statusText);
@@ -818,6 +820,14 @@ async function mUploadVideo(file) {
   } finally {
     btn.disabled = false;
   }
+}
+
+// 血統CSV(手動で用意したもの)に載っている馬名なら、任意で紐付けて血統スコアも表示する。
+function mPromptHorseName() {
+  const name = prompt(
+    '血統CSVに登録した馬名があれば入力してください(任意)。\n' +
+    '空欄のままでもOK — 歩様・馬体の解析だけ行われます:');
+  return name ? name.trim() : null;
 }
 
 async function mAnalyzeFromUrl() {
@@ -832,12 +842,13 @@ async function mAnalyzeFromUrl() {
       const t = new URL(url).searchParams.get('t');
       if (t) start = parseFloat(t);
     } catch (e) {}
+    const horseName = mPromptHorseName();
     $id('m-result-video').style.display = 'none';
     mSetOverlay('動画を取得中…', null);
     const res = await fetch(mApiBase() + '/api/analyze_url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: url, start_s: start }),
+      body: JSON.stringify({ url: url, start_s: start, horse_name: horseName }),
     });
     const body = await mParseJson(res);
     if (!res.ok) throw new Error(body.detail || res.statusText);
@@ -874,6 +885,7 @@ function mShowResult(jobId, dash) {
   if (!dash) return;
   if (dash.gait_score != null) $id('m-metric-gait').textContent = Math.round(dash.gait_score);
   if (dash.conformation_score != null) $id('m-metric-body').textContent = Math.round(dash.conformation_score * 100);
+  if (dash.pedigree_score != null) $id('m-metric-pedigree').textContent = Math.round(dash.pedigree_score * 100);
   const lat = dash.lateral || {};
   mUpdateDonut('fore', lat.foreleg_asymmetry_pct);
   mUpdateDonut('hind', lat.hindleg_asymmetry_pct);
